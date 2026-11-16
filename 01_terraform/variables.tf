@@ -1,3 +1,5 @@
+### Добавляем строку для Terraform pipeline
+
 variable "cloud_id" {
   description = "ID облака Yandex Cloud"
   type        = string
