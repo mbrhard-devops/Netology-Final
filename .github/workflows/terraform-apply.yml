@@ -5,11 +5,13 @@ on:
     branches:
       - main
     paths:
-      - '01_terraform/**' # Запускается только при изменениях в папке terraform
+      - '01_terraform/**'
+  workflow_dispatch:
 
 env:
   TF_VAR_folder_id: b1gep0d4pp10h24g8gd0
   TF_VAR_cloud_id: b1gd2s0bh49gmd73m704
+  TF_VAR_sa_key_file: /tmp/sa-key.json
 
 jobs:
   terraform:
@@ -31,20 +33,17 @@ jobs:
           echo '${{ secrets.YC_SA_JSON }}' > /tmp/sa-key.json
           yc config profile create github-actions
           yc config set service-account-key /tmp/sa-key.json
+          yc config set endpoint api.cloud.yandex.net:443
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.14.8
 
-      - name: Terraform Init
-        run: terraform init
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve
+      - name: Terraform Init & Apply
+        run: |
+          terraform init
+          terraform apply -auto-approve
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
