@@ -8,12 +8,10 @@ terraform {
   required_version = ">= 1.5.0"
 
   backend "s3" {
-    endpoints = {
-      s3 = "https://storage.yandexcloud.net"
-    }
-    bucket = "diplom-tf-state-bucket-b1gep0"
-    region = "ru-central1"
-    key    = "terraform.tfstate"
+    endpoint                    = "https://storage.yandexcloud.net"
+    bucket                      = "diplom-tf-state-bucket-b1gep0"
+    region                      = "ru-central1"
+    key                         = "terraform.tfstate"
     
     skip_credentials_validation = true
     skip_metadata_api_check     = true
