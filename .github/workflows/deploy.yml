@@ -1,0 +1,74 @@
+name: Build and Deploy to Yandex Cloud
+
+on:
+  push:
+    tags:
+      - 'v*'  # Запускается только при создании тега, например v1.0.0
+
+env:
+  YC_REGISTRY_ID: ${{ secrets.YC_REGISTRY_ID }}
+  YC_CLUSTER_ID: ${{ secrets.YC_CLUSTER_ID }}
+  IMAGE_NAME: diplom-app
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Yandex Cloud CLI
+        run: |
+          curl https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
+          echo "$HOME/yandex-cloud/bin" >> $GITHUB_PATH
+
+      - name: Yandex Cloud Login
+        run: |
+          echo '${{ secrets.YC_SA_JSON }}' > /tmp/sa-key.json
+          yc config profile create github-actions
+          yc config set service-account-key /tmp/sa-key.json
+
+      - name: Configure Docker for Yandex Container Registry
+        run: |
+          TOKEN=$(yc iam create-token)
+          echo $TOKEN | docker login --username iam --password-stdin cr.yandex
+
+      - name: Build Docker image
+        run: |
+          docker build --platform linux/amd64 --provenance=false --sbom=false -t cr.yandex/$YC_REGISTRY_ID/$IMAGE_NAME:$IMAGE_TAG ./02_app
+
+      - name: Push Docker image
+        run: |
+          docker push cr.yandex/$YC_REGISTRY_ID/$IMAGE_NAME:$IMAGE_TAG
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Yandex Cloud CLI
+        run: |
+          curl https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
+          echo "$HOME/yandex-cloud/bin" >> $GITHUB_PATH
+
+      - name: Yandex Cloud Login
+        run: |
+          echo '${{ secrets.YC_SA_JSON }}' > /tmp/sa-key.json
+          yc config profile create github-actions
+          yc config set service-account-key /tmp/sa-key.json
+          yc config set endpoint api.cloud.yandex.net:443
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Get Kubernetes Credentials
+        run: |
+          yc managed-kubernetes cluster get-credentials --id $YC_CLUSTER_ID --external
+
+      - name: Update Deployment Image
+        run: |
+          kubectl set image deployment/diplom-flask-app flask-app=cr.yandex/$YC_REGISTRY_ID/$IMAGE_NAME:$IMAGE_TAG
+          kubectl rollout status deployment/diplom-flask-app

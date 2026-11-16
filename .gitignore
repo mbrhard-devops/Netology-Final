@@ -1,0 +1,23 @@
+# Terraform
+01_terraform/terraform.tfstate
+01_terraform/terraform.tfstate.backup
+01_terraform/.terraform/
+01_terraform/.terraform.lock.hcl
+
+# Секреты (НИКОГДА не коммитим!)
+sa-key.json
+*.tfvars
+.env
+
+# Docker
+02_app/*.tar
+02_app/__pycache__/
+02_app/*.pyc
+
+# Kubernetes (генерируется автоматически)
+03_k8s/deployment.yaml
+
+# IDE
+.vscode/
+.idea/
+*.swp
